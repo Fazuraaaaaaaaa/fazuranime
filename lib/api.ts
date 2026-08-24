@@ -9,6 +9,8 @@ export interface AnimeItem {
   status?: string;
   url?: string;
   oploverz_url?: string;
+  /** Hanya ada pada item berupa episode: slug anime induknya. */
+  animeSlug?: string;
 }
 
 export interface EpisodeItem {
@@ -53,6 +55,18 @@ export function itemSlug(item: AnimeItem): string | null {
   return u.replace(/\/+$/, "").split("/").pop() || null;
 }
 
+/** Ambil slug ANIME dari item list — menangani item yang berupa episode. */
+export function animeSlugOf(item: AnimeItem): string | null {
+  if ((item as { animeSlug?: string }).animeSlug) {
+    return (item as { animeSlug?: string }).animeSlug!;
+  }
+  const s = itemSlug(item);
+  if (!s) return null;
+  // "one-piece-episode-1175-subtitle-indonesia" -> "one-piece"
+  // "naruto-shippuuden-episode-end" -> "naruto-shippuuden"
+  const m = s.match(/^(.*?)-episode-/i);
+  return m ? m[1] : s;
+}
 export async function getHome() {
   return api<{ anime_list: AnimeItem[] }>("/anoboy/home?page=1");
 }

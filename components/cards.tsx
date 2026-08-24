@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { itemSlug, type AnimeItem } from "@/lib/api";
+import { animeSlugOf, itemSlug, type AnimeItem } from "@/lib/api";
 
 export function AnimeCard({ item }: { item: AnimeItem }) {
   const slug = itemSlug(item);
+  // Item rilisan terbaru sering berupa EPISODE; pakai animeSlug kalau ada
+  // supaya kartu selalu membuka halaman detail ANIME, bukan 404.
+  const target = (item as { animeSlug?: string }).animeSlug || animeSlugOf(item) || slug;
   const ep = item.episode?.replace(/^Ep\s*/, "") ?? "";
   const showEp = ep && ep !== "Ongoing" && ep !== "Completed";
   const meta = [item.type, item.status].filter(Boolean).join(" • ");
   return (
     <Link
-      href={`/anime/${slug}`}
+      href={`/anime/${target}`}
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] transition-all duration-300 hover:-translate-y-1.5 hover:border-sky-400/60 hover:shadow-xl hover:shadow-sky-950/50"
     >
       <div className="relative aspect-[2/3] overflow-hidden bg-[#151827]">

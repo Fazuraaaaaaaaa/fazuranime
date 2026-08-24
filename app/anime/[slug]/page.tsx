@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SectionHead } from "@/components/cards";
-import { getDetail } from "@/lib/api";
+import { getDetail, getEpisode } from "@/lib/api";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -10,17 +10,31 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  try {
-    const { detail } = await getDetail(slug);
-    return { title: detail.title, description: detail.synopsis?.slice(0, 150) };
-  } catch {
-    return { title: "Detail Anime" };
-  }
+  const { detail } = (await getDetail(slug).catch(() => ({ detail: null }))) ?? {
+    detail: null,
+  };
+  return { title: detail?.title ?? "Anime" };
+}
+
+/** Deteksi slug/judul yang merupakan episode, mis. "...episode-1175-subtitle-indonesia". */
+function looksLikeEpisode(slug: string) {
+  return /episode|ep-?\d/i.test(slug);
 }
 
 export default async function AnimeDetailPage({ params }: Props) {
   const { slug } = await params;
-  const { detail: d } = await getDetail(slug).catch(() => ({ detail: null }));
+
+  let { detail: d } = await getDetail(slug).catch(() => ({ detail: null }));
+
+  // Fallback: banyak item di daftar rilisan sebenarnya adalah EPISODE.
+  // Kalau gagal sebagai detail anime tapi valid sebagai episode, arahkan ke player.
+  if (!d && looksLikeEpisode(slug)) {
+    const ep = await getEpisode(slug).catch(() => null);
+    if (ep && (ep.streams?.length ?? 0) > 0) {
+      redirect(`/episode/${slug}`);
+    }
+  }
+
   if (!d) notFound();
   const info = d.info ?? {};
   const eps = (d.episode_list ?? []).slice().reverse();
