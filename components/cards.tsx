@@ -35,6 +35,11 @@ export function AnimeCard({ item }: { item: AnimeItem }) {
             Tamat
           </span>
         )}
+        {"year" in item && typeof item.year === "number" && item.year > 0 ? (
+          <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-semibold text-sky-300 backdrop-blur">
+            {String(item.year)}
+          </span>
+        ) : null}
       </div>
       <div className="p-3">
         <h3 className="line-clamp-2 min-h-[2.6em] text-sm font-semibold leading-snug transition-colors group-hover:text-sky-300">
