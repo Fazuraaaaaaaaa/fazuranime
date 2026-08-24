@@ -86,6 +86,9 @@ export async function getGenres() {
 export async function getGenreList(slug: string, page: number) {
   return api<{ anime_list: AnimeItem[] }>(`/anoboy/genre/${slug}?page=${page}`);
 }
-export async function getAZ(letter: string) {
-  return api<{ anime_list: AnimeItem[] }>(`/anoboy/az-list?page=1&show=${letter}`);
+export async function getAZ(letter: string, page: number = 1) {
+  return api<{
+    anime_list: AnimeItem[];
+    pagination?: { hasNext: boolean; hasPrev: boolean; currentPage: number };
+  }>(`/anoboy/az-list?page=${page}&show=${letter}`);
 }
