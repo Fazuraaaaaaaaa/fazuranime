@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SectionHead } from "@/components/cards";
-import { getDetail, getEpisode } from "@/lib/api";
+import { getDetailAny } from "@/lib/detail";
+import { getEpisode } from "@/lib/api";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -10,10 +11,11 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const { detail } = (await getDetail(slug).catch(() => ({ detail: null }))) ?? {
+  const res = (await getDetailAny(slug).catch(() => null)) ?? {
     detail: null,
+    source: "anoboy" as const,
   };
-  return { title: detail?.title ?? "Anime" };
+  return { title: res.detail?.title ?? "Anime" };
 }
 
 /** Deteksi slug/judul yang merupakan episode, mis. "...episode-1175-subtitle-indonesia". */
@@ -24,18 +26,18 @@ function looksLikeEpisode(slug: string) {
 export default async function AnimeDetailPage({ params }: Props) {
   const { slug } = await params;
 
-  let { detail: d } = await getDetail(slug).catch(() => ({ detail: null }));
+  let res = await getDetailAny(slug);
 
-  // Fallback: banyak item di daftar rilisan sebenarnya adalah EPISODE.
-  // Kalau gagal sebagai detail anime tapi valid sebagai episode, arahkan ke player.
-  if (!d && looksLikeEpisode(slug)) {
+  // Fallback 1: banyak item di daftar rilisan sebenarnya adalah EPISODE.
+  if (!res && looksLikeEpisode(slug)) {
     const ep = await getEpisode(slug).catch(() => null);
     if (ep && (ep.streams?.length ?? 0) > 0) {
       redirect(`/episode/${slug}`);
     }
   }
 
-  if (!d) notFound();
+  if (!res) notFound();
+  const { detail: d } = res;
   const info = d.info ?? {};
   const eps = (d.episode_list ?? []).slice().reverse();
 
@@ -90,7 +92,7 @@ export default async function AnimeDetailPage({ params }: Props) {
                 <Link
                   key={g.slug}
                   href={`/genre/${g.slug}`}
-                  className="rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-300 hover:border-violet-400"
+                  className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-300 hover:border-sky-400"
                 >
                   {g.name}
                 </Link>
@@ -112,9 +114,9 @@ export default async function AnimeDetailPage({ params }: Props) {
               <Link
                 key={e.slug}
                 href={`/episode/${e.slug}`}
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold transition hover:border-violet-500 hover:text-violet-300"
+                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold transition hover:border-sky-500 hover:text-sky-300"
               >
-                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-500 text-xs text-white">
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-600 to-fuchsia-500 text-xs text-white">
                   ▶
                 </span>
                 <span className="truncate">{e.title}</span>

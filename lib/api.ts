@@ -82,6 +82,10 @@ export async function getSearch(q: string) {
 export async function getDetail(slug: string) {
   return api<{ detail: AnimeDetail }>(`/anoboy/anime/${slug}`);
 }
+/** Sumber cadangan: beberapa judul hanya ada di Oploverz (mis. daftar Tamat). */
+export async function getDetailOploverz(slug: string) {
+  return api<{ detail: AnimeDetail }>(`/oploverz/anime/${slug}`);
+}
 export async function getEpisode(slug: string) {
   return api<{
     title: string;
