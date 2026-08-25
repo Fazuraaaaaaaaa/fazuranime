@@ -1,6 +1,6 @@
-import { getEpisode } from "@/lib/api";
+import { getEpisode, getEpisodeDefaultUrlSamehadaku } from "@/lib/api";
 
-/** Ambil data episode dengan fallback dua sumber (Anoboy -> Oploverz). */
+/** Ambil data episode dengan fallback tiga sumber (Anoboy -> Oploverz -> Samehadaku). */
 export async function getEpisodeAny(slug: string) {
   const a = await getEpisode(slug).catch(() => null);
   if (a && (a.streams?.length ?? 0) > 0) return a;
@@ -11,5 +11,7 @@ export async function getEpisodeAny(slug: string) {
     downloads?: { name: string; resolution: string; url: string }[];
   }>(`/oploverz/episode/${slug}`).catch(() => null);
   if (o && (o.streams?.length ?? 0) > 0) return o;
+  const s = await getEpisodeDefaultUrlSamehadaku(slug).catch(() => null);
+  if (s && s.streams.length > 0) return { ...s, downloads: [] };
   return a ?? o;
 }

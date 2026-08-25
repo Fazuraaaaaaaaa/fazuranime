@@ -86,6 +86,80 @@ export async function getDetail(slug: string) {
 export async function getDetailOploverz(slug: string) {
   return api<{ detail: AnimeDetail }>(`/oploverz/anime/${slug}`);
 }
+
+/* ---------- Samehadaku (sumber ke-3, mis. judul lama seperti K-On!) ---------- */
+
+export interface ShaEpisodeRef {
+  title?: string | number;
+  episodeId?: string;
+  href?: string;
+  samehadakuUrl?: string;
+}
+
+/** Detail anime dari sumber Samehadaku — struktur respons berbeda dari Anoboy. */
+export async function getDetailSamehadaku(slug: string) {
+  const j = await api<{
+    data: {
+      title?: string;
+      poster?: string;
+      synopsis?: { paragraphs?: string[] };
+      japanese?: string;
+      english?: string;
+      status?: string;
+      type?: string;
+      episodes?: number;
+      season?: string;
+      aired?: string;
+      duration?: string;
+      studios?: string;
+      score?: { value?: string; users?: string };
+      genreList?: { title?: string; genreId?: string }[];
+      episodeList?: ShaEpisodeRef[];
+    };
+  }>(`/samehadaku/anime/${slug}`);
+  const d = j.data ?? ({} as NonNullable<typeof j.data>);
+  return {
+    detail: {
+      title: d.title || d.english || d.japanese || slug,
+      poster: d.poster,
+      synopsis: (d.synopsis?.paragraphs ?? []).join("\n\n"),
+      info: Object.fromEntries(
+        [
+          ["Status", d.status],
+          ["Tipe", d.type],
+          ["Episode", d.episodes != null ? String(d.episodes) : undefined],
+          ["Rilis", d.aired],
+          ["Musim", d.season],
+          ["Durasi", d.duration],
+          ["Studio", d.studios],
+          ["Skor", d.score?.value ? `${d.score.value} (${d.score.users ?? "?"} votes)` : undefined],
+        ].filter((c): c is [string, string] => Boolean(c[1])),
+      ),
+      genres: (d.genreList ?? [])
+        .filter((g) => g.genreId && g.title)
+        .map((g) => ({ name: g.title!, slug: g.genreId! })),
+      episode_list: (d.episodeList ?? [])
+        .filter((e) => e.episodeId)
+        .map((e) => ({
+          slug: e.episodeId!,
+          title:
+            typeof e.title !== "undefined" && e.title !== ""
+              ? String(e.title)
+              : e.episodeId!,
+        })),
+    } satisfies AnimeDetail,
+  };
+}
+
+/** URL streaming default sebuah episode Samehadaku (Blogger video, embeddable). */
+export async function getEpisodeDefaultUrlSamehadaku(episodeId: string) {
+  const j = await api<{ data?: { title?: string; defaultStreamingUrl?: string } }>(
+    `/samehadaku/episode/${episodeId}`,
+  );
+  const d = j.data;
+  if (!d?.defaultStreamingUrl) return null;
+  return { title: d.title ?? episodeId, streams: [{ name: "Blogspot", url: d.defaultStreamingUrl }] };
+}
 export async function getEpisode(slug: string) {
   return api<{
     title: string;
