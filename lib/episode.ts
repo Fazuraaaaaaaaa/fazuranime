@@ -1,4 +1,8 @@
-import { getEpisode, getEpisodeSamehadaku } from "@/lib/api";
+import {
+  getEpisode,
+  getEpisodeSamehadaku,
+  getSamehadakuServerUrl,
+} from "@/lib/api";
 
 export interface EpisodeWatch {
   title: string;
@@ -50,11 +54,22 @@ export async function getEpisodeAny(slug: string): Promise<EpisodeWatch | null> 
   if (s && s.streams.length > 0) {
     const qualities: Record<string, string> = {};
     for (const st of s.streams) {
-      if (st.quality) qualities[st.quality] = st.url;
+      if (!st.quality) continue;
+      // Placeholder __SHA_SERVER__<id> harus di-resolve ke URL video asli via API server
+      if (st.url.startsWith("__SHA_SERVER__")) {
+        const real = await getSamehadakuServerUrl(st.url.replace("__SHA_SERVER__", "")).catch(
+          () => null,
+        );
+        if (real) qualities[st.quality] = real;
+      } else {
+        qualities[st.quality] = st.url;
+      }
     }
     return {
       title: s.title,
-      streams: s.streams.map(({ name, url }) => ({ name, url })),
+      streams: s.streams
+        .filter(({ url }) => !url.startsWith("__SHA_SERVER__"))
+        .map(({ name, url }) => ({ name, url })),
       qualities,
       downloads: [],
       releasedOn: s.releasedOn,
