@@ -146,19 +146,70 @@ export async function getDetailSamehadaku(slug: string) {
             typeof e.title !== "undefined" && e.title !== ""
               ? String(e.title)
               : e.episodeId!,
+          release_date: undefined as string | undefined,
         })),
     } satisfies AnimeDetail,
   };
 }
 
-/** URL streaming default sebuah episode Samehadaku (Blogger video, embeddable). */
-export async function getEpisodeDefaultUrlSamehadaku(episodeId: string) {
-  const j = await api<{ data?: { title?: string; defaultStreamingUrl?: string } }>(
-    `/samehadaku/episode/${episodeId}`,
-  );
+/** Detail episode Samehadaku: stream default + daftar server per kualitas + navigasi prev/next. */
+export async function getEpisodeSamehadaku(episodeId: string) {
+  const j = await api<{
+    data?: {
+      title?: string;
+      releasedOn?: string;
+      defaultStreamingUrl?: string;
+      hasPrevEpisode?: boolean;
+      prevEpisode?: ShaEpisodeRef | null;
+      hasNextEpisode?: boolean;
+      nextEpisode?: ShaEpisodeRef | null;
+      server?: {
+        qualities?: {
+          title?: string;
+          serverList?: { title?: string; serverId?: string; href?: string }[];
+        }[];
+      };
+    };
+  }>(`/samehadaku/episode/${episodeId}`);
   const d = j.data;
-  if (!d?.defaultStreamingUrl) return null;
-  return { title: d.title ?? episodeId, streams: [{ name: "Blogspot", url: d.defaultStreamingUrl }] };
+  if (!d) return null;
+
+  const streams: { name: string; url: string; quality?: string }[] = [];
+  // Kualitas eksplisit dari server list (lewati "unknown"/kosong)
+  for (const q of d.server?.qualities ?? []) {
+    const label = (q.title ?? "").trim().toLowerCase();
+    if (!label || !["360p", "480p", "720p", "1080p"].includes(label)) continue;
+    for (const s of q.serverList ?? []) {
+      if (!s.serverId || !s.href) continue;
+      streams.push({
+        name: s.title ?? `${label} ${streams.length + 1}`,
+        url: `__SHA_SERVER__${s.serverId}`,
+        quality: label,
+      });
+    }
+  }
+  // Stream default (Blogger) selalu ada sebagai opsi utama
+  if (d.defaultStreamingUrl) {
+    streams.unshift({ name: "Default", url: d.defaultStreamingUrl });
+  }
+
+  return {
+    title: d.title ?? episodeId,
+    releasedOn: d.releasedOn,
+    streams,
+    hasPrev: Boolean(d.hasPrevEpisode),
+    prevSlug: d.prevEpisode?.episodeId ?? null,
+    hasNext: Boolean(d.hasNextEpisode),
+    nextSlug: d.nextEpisode?.episodeId ?? null,
+  };
+}
+
+/** URL pemutaran sebuah server episode Samehadaku (proxy API -> link video asli). */
+export async function getSamehadakuServerUrl(serverId: string) {
+  const j = await api<{ data?: { url?: string } }>(
+    `/samehadaku/server/${serverId}`,
+  );
+  return j.data?.url ?? null;
 }
 export async function getEpisode(slug: string) {
   return api<{
