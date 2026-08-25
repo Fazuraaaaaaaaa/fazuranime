@@ -44,7 +44,15 @@ export default function EpisodeWatch({ watch }: { watch: WatchData }) {
     autoPlay: false,
     autoNext: false,
   });
-  const [quality, setQuality] = useState<string | null>(null);
+  const [activeQuality, setActiveQuality] = useState<string | null>(null);
+
+  /** Sumber aktif: kualitas terpilih, atau default. */
+  const effectiveSources = useMemo(() => {
+    if (activeQuality && sources[activeQuality]) {
+      return { default: sources[activeQuality], ...sources };
+    }
+    return sources;
+  }, [sources, activeQuality]);
 
   useEffect(() => {
     try {
@@ -86,20 +94,11 @@ export default function EpisodeWatch({ watch }: { watch: WatchData }) {
 
   return (
     <div>
-      <VideoPlayer sources={sources} />
+      <VideoPlayer sources={effectiveSources} />
       <VideoControls
         qualities={["360p", "480p", "720p"].filter((q) => Boolean(sources[q]))}
-        activeQuality={quality}
-        onQuality={(q) => {
-          setQuality(q === quality ? null : q);
-          // ganti sumber player ke kualitas terpilih
-          if (sources[q]) {
-            const cur = sources.default;
-            sources.default = sources[q];
-            sources[q] = cur; // swap supaya toggle balik
-            router.refresh();
-          }
-        }}
+        activeQuality={activeQuality}
+        onQuality={(q) => setActiveQuality((prev) => (prev === q ? null : q))}
         autoPlay={prefs.autoPlay}
         onAutoPlay={(v) => savePrefs({ ...prefs, autoPlay: v })}
         autoNext={prefs.autoNext}

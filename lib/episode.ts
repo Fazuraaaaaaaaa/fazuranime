@@ -57,9 +57,12 @@ export async function getEpisodeAny(slug: string): Promise<EpisodeWatch | null> 
       if (!st.quality) continue;
       // Placeholder __SHA_SERVER__<id> harus di-resolve ke URL video asli via API server
       if (st.url.startsWith("__SHA_SERVER__")) {
-        const real = await getSamehadakuServerUrl(st.url.replace("__SHA_SERVER__", "")).catch(
+        let real = await getSamehadakuServerUrl(st.url.replace("__SHA_SERVER__", "")).catch(
           () => null,
         );
+        // pixeldrain halaman (/u/<id>) -> direct file /api/file/<id> agar bisa diputar
+        const pd = real?.match(/pixeldrain\.com\/u\/([A-Za-z0-9]+)/);
+        if (pd) real = `https://pixeldrain.com/api/file/${pd[1]}`;
         if (real) qualities[st.quality] = real;
       } else {
         qualities[st.quality] = st.url;

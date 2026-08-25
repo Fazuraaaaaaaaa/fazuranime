@@ -2,24 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 
+/** URL video langsung (file mp4/webm) vs halaman embed (butuh iframe). */
+function isDirectVideo(url: string) {
+  return /\.(mp4|webm|m3u8)(\?|$)/i.test(url);
+}
+
 /**
  * Player full-bleed: iframe/video rata kiri-kanan, background hitam,
- * tombol play besar di tengah sebelum diputar. Kualitas = ganti src.
+ * tombol play besar di tengah sebelum diputar.
  */
 export default function VideoPlayer({
   sources,
 }: {
-  /** Daftar url embed per kualitas; key "default" selalu ada. */
+  /** Daftar url per kualitas; key "default" selalu ada. */
   sources: Record<string, string>;
 }) {
-  // Urutan preferensi kualitas
   const order = ["720p", "480p", "360p", "default"];
   const available = order.filter((k) => sources[k]);
   const [active, setActive] = useState(available[0] ?? "");
   const [started, setStarted] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  // Reset saat episode berganti (sources berubah)
+  // Reset saat episode berganti
   const srcKey = Object.values(sources).join("|");
   useEffect(() => {
     setActive(order.filter((k) => sources[k])[0] ?? "");
@@ -32,7 +36,8 @@ export default function VideoPlayer({
     wrapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  const currentUrl = active ? sources[active] : undefined;
+  const url = active ? sources[active] : undefined;
+  const direct = url ? isDirectVideo(url) : false;
 
   return (
     <div
@@ -40,15 +45,26 @@ export default function VideoPlayer({
       className="relative -mx-4 w-[calc(100%+2rem)] bg-black sm:-mx-6 sm:w-[calc(100%+3rem)] lg:-mx-8 lg:w-[calc(100%+4rem)]"
       style={{ aspectRatio: "16 / 9", maxHeight: "78vh" }}
     >
-      {started && currentUrl ? (
-        <iframe
-          key={currentUrl}
-          src={currentUrl}
-          allowFullScreen
-          allow="autoplay; fullscreen; encrypted-media"
-          className="absolute inset-0 h-full w-full border-0"
-          title="Player"
-        />
+      {started && url ? (
+        direct ? (
+          <video
+            key={url}
+            src={url}
+            controls
+            autoPlay
+            playsInline
+            className="absolute inset-0 h-full w-full bg-black"
+          />
+        ) : (
+          <iframe
+            key={url}
+            src={url}
+            allowFullScreen
+            allow="autoplay; fullscreen; encrypted-media"
+            className="absolute inset-0 h-full w-full border-0"
+            title="Player"
+          />
+        )
       ) : (
         /* Overlay play besar di tengah */
         <button
