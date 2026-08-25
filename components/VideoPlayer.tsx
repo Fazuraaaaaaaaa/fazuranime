@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/** URL video langsung (file mp4/webm) vs halaman embed (butuh iframe). */
+/** URL video langsung (file mp4/webm/hls) vs halaman embed (butuh iframe). */
 function isDirectVideo(url: string) {
-  return /\.(mp4|webm|m3u8)(\?|$)/i.test(url);
+  if (/\.(mp4|webm|m3u8)(\?|$)/i.test(url)) return true;
+  // pixeldrain api/file = direct file video (tanpa ekstensi di URL)
+  if (/pixeldrain\.com\/api\/file\//.test(url)) return true;
+  return false;
 }
 
 /**
