@@ -8,7 +8,7 @@ import EpisodeList, { type EpisodeCardItem } from "@/components/EpisodeList";
 
 /** Ekstrak nomor episode dari slug/judul (server-side). */
 function extractNumber(slug: string, title?: string): string {
-  const src = title ?? "";
+  const src = `${title ?? ""} ${slug}`;
   const m =
     src.match(/episode\s*(\d+)/i) ||
     src.match(/\bEP\s*(\d+)\b/i) ||
@@ -16,7 +16,7 @@ function extractNumber(slug: string, title?: string): string {
   if (m) return m[1];
   if (/ova/i.test(src)) return "OVA";
   if (/movie/i.test(src)) return "Movie";
-  return "?";
+  return "SP";
 }
 
 function formatTanggal(iso: string | undefined): string {
